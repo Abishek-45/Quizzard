@@ -36,3 +36,36 @@ body{
     justify-content: center;
     border-radius: 10px;
 }
+.question{
+    background-color:#1c1a5e;
+    font-family: 'Poppins';
+    width:50vh;
+    color:white;
+    display:flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    height:60vh;
+}
+.options-div{
+    display: flex;
+    width:fit-content;
+    flex-direction: column;
+    justify-content: center;
+    justify-items: center;
+}
+.option{
+    background-color: white;
+    margin:0.5rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size:0.7rem;
+    color:#213772;
+    border-radius: 5px;
+    width:10rem;
+    height:1.5rem;
+}
+.option:hover{
+    cursor: pointer;
+}

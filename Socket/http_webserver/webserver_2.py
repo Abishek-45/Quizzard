@@ -14,7 +14,8 @@ resources = {
              '/' : 'E:\\Socket\\http_webserver\\quiz.html', 
              '/lets_play.html' : 'E:\\Socket\\http_webserver\\lets_play.html',
              '/style.css' : 'E:\\Socket\\http_webserver\\style.css',
-             '/assests/chest.png' : 'E:\\Socket\\http_webserver\\assests\\chest.png'
+             '/assests/chest.png' : 'E:\\Socket\\http_webserver\\assests\\chest.png',
+             '/api/' : 'E:\Quizzard\Quizzard\Socket\http_webserver\forms.html'
             }
 
 resources_type = {
@@ -115,6 +116,8 @@ def handle_client(client, addr):
                     client.sendall(file_object.encode('utf-8'))
                 else:
                     client.sendall(file_object)
+        elif parse[0] == 'POST':
+            print(headers)
         else:
             raise HandleError('Bad Request', 400)
         
