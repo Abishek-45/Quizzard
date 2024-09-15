@@ -1,0 +1,38 @@
+body{
+    box-sizing: border-box;
+    display:flex;
+    justify-content: center;
+    align-items: center;
+    justify-items: center;
+}
+.main-page{
+    background-color: #1c1a5e;
+    display: flex;
+    width:fit-content;
+    flex-direction: column;
+    justify-content: center;
+    justify-items: center;
+    align-items: center;
+    height: 97vh;
+}
+.title h1{
+    color:white;
+    font-size:3rem;
+}
+.chest-img img{
+    width:30rem;
+}
+.play-btn a{
+    text-decoration: none;
+    font-size:1rem;
+    color:#213772;
+}
+.play-btn{
+    background-color: #41e5ed;
+    width:8rem;
+    height:2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+}
