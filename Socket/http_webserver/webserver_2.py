@@ -6,12 +6,8 @@ from http_protocol import HttpResponse
 import os
 import json
 
-
 host = '127.0.0.1'
 port = 8888
-
-question = ['1 + 1 = ?']
-answer = [2]
 
 server_sock = None  # Declare this globally so it can be accessed in the signal handler
 
@@ -95,52 +91,61 @@ def fetch_file(url_path):
         return None, None
     except Exception as e:
         raise HandleError("Internal Server Error", 500)
-
-def handle_client(client, addr):
-    request_obj = client.recv(1024).decode('utf-8')
-    parse, headers = httpParser(request_obj)
-    print(parse)
-
-    # parse = request_obj.split()
-
-    if len(parse) < 2:  # Handle malformed requests
-        response_packet = "HTTP/1.1 400 Bad Request\r\n\r\n"
-        client.sendall(response_packet.encode('utf-8'))
     
+def handle_client(client, addr):
     try:
-        if parse[0] == 'GET':
-            file_object, file_extension = fetch_file(parse[1])
-            if file_object:
-                content_type = fileType(headers['Sec-Fetch-Dest'], file_extension)
-                response_object = HttpResponse(200, 'OK')
-                response_object.add_header('Content-Type', content_type)
-                response_object.add_header('Content-Length', str(len(file_object)))
-                response_object.set_body(file_object)
-                packet_headers, body = response_object.build_packet()
-                client.send(packet_headers)
-                if isinstance(file_object, str):
-                    client.sendall(file_object.encode('utf-8'))
-                else:
-                    client.sendall(file_object)
-        elif parse[0] == 'POST':
-            response_object = HttpResponse(200, 'OK')
-            response_object.add_header('Content-type', 'application/json')
-            response_object.set_body({"answer" : 2})
-            response_packet, body = response_object.build_packet()
-            client.send(response_packet)
-            if body:
-                client.send(json.dumps(body).encode('utf-8'))
-        else:
-            raise HandleError('Bad Request', 400)
-    except HandleError as e:
-        error_packet = e.handle_error()
-        print(error_packet)
-        client.sendall(error_packet.encode('utf-8'))
-        print(f"Error : {e}")
-    except Exception as e:
-        raise HandleError('File Not Found', 404)
+        while True:
+            request_obj = client.recv(1024).decode('utf-8')
 
-    client.close()  # Close connection after handling the request
+            if not request_obj.split('\r\n'):  # Handle malformed requests
+                response_packet = "HTTP/1.1 400 Bad Request\r\n\r\n"
+                client.sendall(response_packet.encode('utf-8'))
+                return
+            
+            parse, headers = httpParser(request_obj)
+            print(parse)
+
+            if 'Connection' in headers and headers['Connection'] == 'Close':
+                client.close()
+                return
+            # parse = request_obj.split()
+            try:
+                if parse[0] == 'GET':
+                    file_object, file_extension = fetch_file(parse[1])
+                    if file_object:
+                        content_type = fileType(headers['Sec-Fetch-Dest'], file_extension)
+                        response_object = HttpResponse(200, 'OK')
+                        response_object.add_header('Content-Type', content_type)
+                        response_object.add_header('Content-Length', str(len(file_object)))
+                        response_object.set_body(file_object)
+                        packet_headers, body = response_object.build_packet()
+                        client.send(packet_headers)
+                        if isinstance(file_object, str):
+                            client.sendall(file_object.encode('utf-8'))
+                        else:
+                            client.sendall(file_object)
+                elif parse[0] == 'POST':
+                    response_object = HttpResponse(200, 'OK')
+                    response_object.add_header('Content-type', 'application/json')
+                    # Request responded with the answer
+                    response_object.set_body({"answer" : 2})
+                    response_packet, body = response_object.build_packet()
+                    client.send(response_packet)
+                    if body:
+                        client.send(json.dumps(body).encode('utf-8'))
+                else:
+                    raise HandleError('Bad Request', 400)
+            except HandleError as e:
+                error_packet = e.handle_error()
+                print(error_packet)
+                client.sendall(error_packet.encode('utf-8'))
+                print(f"Error : {e}")
+            except Exception as e:
+                raise HandleError('File Not Found', 404)
+    finally:
+        print("Closing client...",addr)
+        client.close() # Close connection after handling the request
+        return
 
 # Signal handler for Ctrl + C (SIGINT)
 def signal_handler(sig, frame):
