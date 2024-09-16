@@ -11,45 +11,56 @@
 </head>
 <body>
     <div class="question">
-        <div>Time Left: <span id="timer">10</span></div>
+        <div>Time Left: <span id="timer">5</span></div>
         <h5>Question 3 out of 20</h5>
         <h1>1 + 1 = ?</h1>
         <div class="options-div">
-            <div class="option" onclick="option_clicked(1)">None</div>
-            <div class="option" onclick="option_clicked(2)">1</div>
-            <div class="option" onclick="option_clicked(3)">2</div>
-            <div class="option" onclick="option_clicked(4)">3</div>
+            <div class="option" onclick="option_clicked(1)" id="1">None</div>
+            <div class="option" onclick="option_clicked(2)" id="2">1</div>
+            <div class="option" onclick="option_clicked(3)" id="3">2</div>
+            <div class="option" onclick="option_clicked(4)" id="4">3</div>
         </div>
     </div>
 </body>
 </html>
 <script>
-    let current_value = null;
-    timeLeft = 10;
-    const coundown = setInterval(async() => {
+    let current_answer = null;
+    timeLeft = 5;
+    const countdown = setInterval(async() => {
         document.getElementById('timer').textContent = timeLeft;
         timeLeft--;
-        
         if(timeLeft == 0){
-            clearInterval(countdown)
             try{
-                let response = await fetch('http://127.0.0.1/api/',{
+                console.log("Inside the If condition : ", current_answer)
+                let response = await fetch('http://127.0.0.1:8888/api/',{
                     method: 'POST',
                     headers: {'Content-Type' : 'application/json'},
                     body: JSON.stringify({'answer' : current_answer})
                 })
-
+                
                 if(!response.ok){
                     throw new Error("Failed to submit answer")
                 }
 
                 let result = await response.json();
-                console.log(result);
+                console.log(String(response.answer) == String(current_answer));
+                if(String(response.answer) == String(current_answer)){
+                    document.getElementById("1").style.backgroundColor = 'green';
+                }
+                else{
+                    document.getElementById("1").style.backgroundColor = 'red';
+                    if(current_answer){
+                    document.getElementById("2").style.backgroundColor = 'green';
+                    }
+                }
             }
             catch (error) {
                 console.log("Error : ", error);
             }
+            clearInterval(countdown);
         }
     }, 1000)
-
+    function option_clicked(value){
+        current_answer = value;
+    }
 </script>

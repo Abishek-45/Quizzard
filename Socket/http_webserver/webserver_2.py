@@ -4,18 +4,24 @@ import signal
 import sys
 from http_protocol import HttpResponse
 import os
+import json
+
+
 host = '127.0.0.1'
 port = 8888
 
+question = ['1 + 1 = ?']
+answer = [2]
 
 server_sock = None  # Declare this globally so it can be accessed in the signal handler
 
 resources = {
-             '/' : 'E:\\Socket\\http_webserver\\quiz.html', 
-             '/lets_play.html' : 'E:\\Socket\\http_webserver\\lets_play.html',
-             '/style.css' : 'E:\\Socket\\http_webserver\\style.css',
-             '/assests/chest.png' : 'E:\\Socket\\http_webserver\\assests\\chest.png',
-             '/api/' : 'E:\Quizzard\Quizzard\Socket\http_webserver\forms.html'
+             '/' : r'E:\Quizzard\Quizzard\Socket\http_webserver\quiz.html', 
+             '/lets_play.html' : r'E:\Quizzard\Quizzard\Socket\http_webserver\lets_play.html',
+             '/style.css' : r'E:\Quizzard\Quizzard\Socket\http_webserver\style.css',
+             '/assests/chest.png' : r'E:\Quizzard\Quizzard\Socket\http_webserver\assests\chest.png',
+             '/api/' : r'E:\Quizzard\Quizzard\Socket\http_webserver\forms.html',
+             '/api/style.css' : r'E:\Quizzard\Quizzard\Socket\http_webserver\style.css',
             }
 
 resources_type = {
@@ -53,6 +59,7 @@ class HandleError(Exception):
 
 def httpParser(request):
     request_line = request.split('\r\n')
+    body = request_line.pop()
     first = request_line[0].split()
     headers = {}
     for header in request_line[1:]:
@@ -60,6 +67,7 @@ def httpParser(request):
         if element[0]:
             key, value = element[0], element[1]
             headers[key] = value
+    headers['body'] = body
     return first, headers
 
 def fileType(dest_type, file_extension):
@@ -84,47 +92,53 @@ def fetch_file(url_path):
             raise HandleError('File Not Found', 404)
     except HandleError as e:
         error_packet = e.handle_error()
-        client.sendall(error_packet.encode('utf-8'))
-        print(e)
+        return None, None
     except Exception as e:
         raise HandleError("Internal Server Error", 500)
 
 def handle_client(client, addr):
     request_obj = client.recv(1024).decode('utf-8')
-    print("Request: \n", request_obj)
     parse, headers = httpParser(request_obj)
+    print(parse)
 
     # parse = request_obj.split()
 
     if len(parse) < 2:  # Handle malformed requests
-        client.sendall(b"HTTP/1.1 400 Bad Request\r\n\r\n")
-        client.close()
-        return
+        response_packet = "HTTP/1.1 400 Bad Request\r\n\r\n"
+        client.sendall(response_packet.encode('utf-8'))
     
     try:
         if parse[0] == 'GET':
             file_object, file_extension = fetch_file(parse[1])
-            content_type = fileType(headers['Sec-Fetch-Dest'], file_extension)
             if file_object:
+                content_type = fileType(headers['Sec-Fetch-Dest'], file_extension)
                 response_object = HttpResponse(200, 'OK')
                 response_object.add_header('Content-Type', content_type)
                 response_object.add_header('Content-Length', str(len(file_object)))
                 response_object.set_body(file_object)
-                packet_headers = response_object.build_packet()
+                packet_headers, body = response_object.build_packet()
                 client.send(packet_headers)
                 if isinstance(file_object, str):
                     client.sendall(file_object.encode('utf-8'))
                 else:
                     client.sendall(file_object)
         elif parse[0] == 'POST':
-            print(headers)
+            response_object = HttpResponse(200, 'OK')
+            response_object.add_header('Content-type', 'application/json')
+            response_object.set_body({"answer" : 2})
+            response_packet, body = response_object.build_packet()
+            client.send(response_packet)
+            if body:
+                client.send(json.dumps(body).encode('utf-8'))
         else:
             raise HandleError('Bad Request', 400)
-        
     except HandleError as e:
         error_packet = e.handle_error()
+        print(error_packet)
         client.sendall(error_packet.encode('utf-8'))
         print(f"Error : {e}")
+    except Exception as e:
+        raise HandleError('File Not Found', 404)
 
     client.close()  # Close connection after handling the request
 
@@ -143,7 +157,7 @@ server_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server_sock.bind((host, port))
 
 try:
-    server_sock.listen(5)
+    server_sock.listen(7)
     print(f"Server Listening on port {port}")
     while True:
         try:

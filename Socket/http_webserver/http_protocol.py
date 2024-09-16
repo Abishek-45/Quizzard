@@ -49,4 +49,4 @@ class HttpResponse:
     
     def build_packet(self):
         packet_headers = self.build_headers()
-        return packet_headers.encode('utf-8')
+        return packet_headers.encode('utf-8'), self.body
