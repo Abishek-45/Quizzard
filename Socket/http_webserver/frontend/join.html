@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Handjet:wght@100..900&display=swap" rel="stylesheet">
+    <title>Document</title>
+</head>
+
+<body>
+    <style>
+        body{
+            background-color: rgb(124, 163, 184);
+        }
+        h1 {
+            margin-top: 100px;
+            font-family: 'Handjet';
+            font-size: 100px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            letter-spacing: 0.5rem;
+        }
+        #button {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+        button {
+            font-family: 'Handjet';
+            font-size: 30px;
+            border: block;
+            border-width: 3px;
+            border-color: black;
+            color: white;
+            background-color: black;
+            height: 70px;
+            width: 250px;
+            border-radius: 10px;
+        }
+        #input{
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+        input{
+            border: none;
+            height: 50px;
+            width: 250px;
+            text-align: center;
+            border-radius: 10px;
+            font-family: 'Handjet';
+            font-size: 30px;
+        }
+        button:hover{
+            color: black;
+            background-color: white;
+        }
+    </style>
+    <h1>Quizzard</h1>
+    <div id="input" method="POST"><input type="text" name="" id="" placeholder="Enter Code"></div>
+    <br>
+    <div id="button">
+        <button onclick="start_quiz()">Start Quiz</button>
+    </div> 
+</body>
+</html>
+<script>
+    async function start_quiz(){
+        let response = await fetch('http://127.0.0.1:8888/api/join/', {
+            method:'GET'
+        });
+
+        if(!response.ok){
+            console.log("Code doesn't exists");
+        }
+        let join_code = await response.json();
+        console.log("Joining Code:", join_code.data);
+    }
+</script>

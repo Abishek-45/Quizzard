@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Handjet:wght@100..900&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="outer-board">
+        <h1>Leader Board</h1>
+        <div class="inner-board">
+            <div class="record">
+                <div class="rank">Rank</div>
+                <div class="name">Name</div>
+                <div class="score">Score</div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
+<script>
+    const data = [
+        {
+            "rank": 1,
+            "name": "StarLight",
+            "score": 15
+        },
+        {
+            "rank": 2,
+            "name": "MoonLight",
+            "score": 10
+        }
+    ];
+    
+    const records = data.map(item => {
+        const record = document.createElement('div');
+        const rank = document.createElement('div');
+        const name = document.createElement('div');
+        const score = document.createElement('div');
+
+        record.className = "record"; 
+        rank.className = "rank";
+        name.className = "name";
+        score.className = "score";
+
+        rank.textContent = `${item.rank}`;
+        name.textContent = `${item.name}`;
+        score.textContent = `${item.score}`;
+
+        record.appendChild(rank);
+        record.appendChild(name);
+        record.appendChild(score);
+
+        return record;
+    });
+
+    const innerBoard = document.querySelector('.inner-board');
+
+    records.forEach(record => innerBoard.appendChild(record));
+</script>

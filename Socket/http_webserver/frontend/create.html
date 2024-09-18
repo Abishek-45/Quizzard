@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Handjet:wght@100..900&display=swap" rel="stylesheet">
+    <title>Document</title>
+</head>
+
+<body>
+    <style>
+        body{
+            background-color: rgb(124, 163, 184);
+        }
+        h1 {
+            margin-top: 100px;
+            font-family: 'Handjet';
+            font-size: 100px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        #button {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+        button {
+            
+            font-family: 'Handjet';
+            font-size: 30px;
+            border: block;
+            border-width: 3px;
+            border-color: black;
+            color: white;
+            background-color: black;
+            height: 70px;
+            width: 250px;
+            border-radius: 10px;
+
+        }
+
+        #input{
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+
+        input{
+            border: none;
+            height: 50px;
+            width: 250px;
+            text-align: center;
+            border-radius: 10px;
+            font-family: 'Handjet';
+            font-size: 30px;
+            
+        }
+
+        button:hover{
+            color: black;
+            background-color: white;
+            
+        }
+        #total{
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+
+        .question-input{
+            width: 500px;
+        }
+        .option-input{
+            border-radius: 50px;
+        }
+
+    </style>
+    <h1>Quizzard</h1>
+    <div id="total">
+    <div id="input" method="POST"><input type="text" name="" id="questionCount" placeholder="No of questions"></div>
+    <div id="button">
+        <br>
+        <button id="enter">ENTER</button>
+    </div>
+    </div>
+
+    <script>
+        document.getElementById('enter').addEventListener('click',function(){
+            const questionCount = document.getElementById('questionCount').value
+            const Container = document.getElementById('total')
+            Container.innerHTML = ''
+
+            const questions = []
+            
+            for (let i = 1; i<= questionCount; i++){
+                const qinput = document.createElement('input')
+                qinput.type = 'text'
+                qinput.classList.add('question-input');
+                qinput.placeholder = `Question ${i}`
+
+                Container.appendChild(qinput);
+
+                Container.appendChild(document.createElement('br'))
+
+                const options = []
+
+                for (let j = 1; j<= 4; j++){
+                    const oinput = document.createElement('input')
+                    oinput.type = 'text'
+                    oinput.placeholder = `Options ${j}`
+                    oinput.classList.add('option-input')
+                    options.push(oinput)
+                    Container.appendChild(oinput)
+                    Container.appendChild(document.createElement('br'))
+                }
+
+                Container.appendChild(document.createElement('br'))
+
+                const correctInput = document.createElement('input');
+                correctInput.type = 'text';
+                correctInput.classList.add('correct-input');
+                correctInput.placeholder = 'Correct Option (1-4)';
+                Container.appendChild(correctInput);
+                Container.appendChild(document.createElement('br'));
+
+                Container.appendChild(document.createElement('br'));
+
+                questions.push({ question: qinput, options, correctInput });
+            }
+
+            const submitButton = document.createElement('button');
+            submitButton.innerText = 'Submit';
+            submitButton.addEventListener('click', async function() {
+                const data = questions.map(q => {
+                    return {
+                        question: q.question.value,
+                        options: q.options.map(o => o.value),
+                        correctOption: q.correctInput.value
+                    }
+                })
+                let jsonData = JSON.stringify(data);
+                let response = await fetch('http://127.0.0.1:8888/api/create/',{
+                    method : 'POST',
+                    headers : {'Content-Type':'application/json', 'Content-Length' : jsonData.length},
+                    body : jsonData
+                });
+            })
+            Container.appendChild(submitButton);
+        })
+    </script>
+</body>
+</html>

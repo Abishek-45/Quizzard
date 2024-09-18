@@ -113,7 +113,8 @@ def handle_client(client, addr):
                 if parse[0] == 'GET':
                     file_object, file_extension = fetch_file(parse[1])
                     if file_object:
-                        content_type = fileType(headers['Sec-Fetch-Dest'], file_extension)
+                        dest_type = headers.get('Sec-Fetch-Dest', 'document')
+                        content_type = fileType(dest_type, file_extension)
                         response_object = HttpResponse(200, 'OK')
                         response_object.add_header('Content-Type', content_type)
                         response_object.add_header('Content-Length', str(len(file_object)))
