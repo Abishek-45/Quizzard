@@ -9,15 +9,18 @@ import random
 
 host = '127.0.0.1'
 port = 8888
-
 server_sock = None  # Declare this globally so it can be accessed in the signal handler
-codes = {}
+
+code_map = {"0110": ["Host",[]]}
+code_question = {}
 
 resources = {
              '/' : r'E:\Quizzard\Quizzard\Socket\http_webserver\frontend\main.html',
              '/join.html' : r'E:\Quizzard\Quizzard\Socket\http_webserver\frontend\join.html',
              '/leader.html': r'E:\Quizzard\Quizzard\Socket\http_webserver\frontend\leader.html',
              '/style.css' : r'E:\Quizzard\Quizzard\Socket\http_webserver\frontend\style.css',
+             '/create.html' : r'E:\Quizzard\Quizzard\Socket\http_webserver\frontend\create.html',
+             '/lobby.html' : r'E:\Quizzard\Quizzard\Socket\http_webserver\lobby.html',
             }
 
 resources_type = {
@@ -28,17 +31,44 @@ resources_type = {
 
 def join_code(client):
     code = random.randrange(100000, 999999)
-    codes[code] = [client]
-    response_object = HttpResponse(200, 'OK')
-    response_object.add_header('Content-Type', 'application/json')
-    json_body = json.dumps({"data": code})
-    response_object.set_body(json_body)
-    response_object.add_header('Content-Length', len(json_body))
-    response_packet, body = response_object.build_packet()
-    return response_packet, body
+    while code in code_map:
+        code = random.randrange(100000, 999999)
+    code_map[code] = [[client], []]         #[[Host], [Client1, Client2, Client3]]
+    # response_object = HttpResponse(200, 'OK')
+    # response_object.add_header('Content-Type', 'application/json')
+    # json_body = json.dumps({"data": code})
+    # response_object.set_body(json_body)
+    # response_object.add_header('Content-Length', len(json_body))
+    # response_packet, body = response_object.build_packet()
+    return code
 
 # To get questions from the host and preprocess it.
-def create_ques(client):
+def create_quest(client, *args, **kwargs):
+    body = json.loads(args[0])
+    code = join_code()
+    code_question[code] = body
+    response_object = HttpResponse(201, "Created")
+    response_packet, _ = response_object.build_packet()
+    client.send(response_packet)
+
+def join_quiz(client, *args, **kwargs):
+    body = json.loads(args[0])
+    code = body['code']
+    print("Code : ",code)
+    if code in code_map:
+        code_map[code][1].append(client)
+        response_object = HttpResponse(302, "Found")
+        response_object.add_header('Content-Type', 'text/html')
+        response_object.add_header('Content-Length', 0)
+        response_object.add_header('Location', f'http://{host}:{port}/lobby.html')
+        response_packet, _ = response_object.build_packet()
+        client.send(response_packet)
+    else:
+        response_object = HttpResponse(404, "Not Found")
+        response_packet, body = response_object.build_packet()
+        client.send(response_packet)
+
+def start_quiz(client, *args, **kwargs):
     pass
 
 class HandleError(Exception):
@@ -117,19 +147,20 @@ def handle_get(client, req_path):
     response_packet, body = handle(client)
     return response_packet, body
 
+def handle_post(client, req_path, body):
+    handle = url_patterns.get(req_path)
+    handle(client, body)
+
 def handle_client(client, addr):
     try:
         while True:
             request_obj = client.recv(1024).decode('utf-8')
-
             if not request_obj.split('\r\n'):  # Handle malformed requests
                 response_packet = "HTTP/1.1 400 Bad Request\r\n\r\n"
                 client.sendall(response_packet.encode('utf-8'))
                 return
-            
             parse, headers = httpParser(request_obj)
             print(parse)
-
             if 'Connection' in headers and headers['Connection'] == 'Close':
                 client.close()
                 return
@@ -153,13 +184,14 @@ def handle_client(client, addr):
                         client.sendall(response_header)
                         client.sendall(body.encode('utf-8'))
                 elif parse[0] == 'POST':
-                    response_object = HttpResponse(200, 'OK')
-                    response_object.add_header('Content-type', 'application/json')
-                    response_object.set_body({"answer" : 2})
-                    response_packet, body = response_object.build_packet()
-                    client.send(response_packet)
-                    if body:
-                        client.send(json.dumps(body).encode('utf-8'))
+                    handle_post(client, parse[1], headers['body'])
+                    # response_object = HttpResponse(200, 'OK')
+                    # response_object.add_header('Content-type', 'application/json')
+                    # response_object.set_body({"answer" : 2})
+                    # response_packet, body = response_object.build_packet()
+                    # client.send(response_packet)
+                    # if body:
+                    #     client.send(json.dumps(body).encode('utf-8'))
                 else:
                     raise HandleError('Bad Request', 400)
             except HandleError as e:
@@ -190,8 +222,9 @@ server_sock.bind((host, port))
 
 # Server Object
 url_patterns = {}
-url_patterns['/api/join/'] = join_code
+url_patterns['/api/join-code/'] = join_code
 url_patterns['/api/create/'] = create_quest
+url_patterns['/api/join-quiz/'] = join_quiz
 
 try:
     server_sock.listen(10)
