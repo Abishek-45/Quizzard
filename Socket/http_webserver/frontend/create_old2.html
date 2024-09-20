@@ -96,7 +96,7 @@
     <h1>Quizzard</h1>
 
     <div id="total">
-    <div id="input" method="POST"><input type="text" name="" id="questionCount" placeholder="No of questions" ></div>
+    <div id="input" method="POST"><input type="text" name="" id="questionCount" placeholder="No of questions"></div>
     <div id="button">
         <br>
         <button id="enter">ENTER</button>
@@ -105,7 +105,7 @@
     </div>
     </div>
 <div id="last">
-    <div id="no_code" style="display: none;">
+    <div id="no" style="display: none;">
         <p>Code: <span id="num"></span></p>
     </div>
 <div id="no" style="display: none;">
@@ -117,11 +117,7 @@
     <button id="start-button">Start</button>
 </div>
 </div>
-
-   
-
     <script>
-        let quizCode;
         document.getElementById('enter').addEventListener('click',function(){
             const questionCount = document.getElementById('questionCount').value
             const Container = document.getElementById('total')
@@ -129,8 +125,6 @@
 
             const questions = []
 
-            
-            
             for (let i = 1; i<= questionCount; i++){
                 const qinput = document.createElement('input')
                 qinput.type = 'text'
@@ -174,67 +168,46 @@
 
                 submitButton.innerHTML=''
                 Container.innerHTML=''
-            //     const data = {
-            //     questions: questions.map(q => {
-            //         return {
-            //             id:counter,
-            //             question: q.question.value,
-            //             options: q.options.map(o => o.value),
-            //             answer: q.correctInput.value
-            //         }
-            //         counter++;
-            //     })
-            // }
-            let counter = 1;
+        
                 const data = {
-                    questions: questions.map(q => {
-                        const questionObj = {
-                            id: String(counter), // Convert counter to string
-                            question: q.question.value,
-                            options: q.options.map(o => o.value),
-                            answer: q.correctInput.value
-                        };
-                        counter++; // Increment counter
-                        return questionObj;
-                    })
-                };
+                questions: questions.map(q => {
+                    return {
+                        question: q.question.value,
+                        options: q.options.map(o => o.value),
+                        correctOption: q.correctInput.value
+                    }
+
+                })
+            }
                 const jsonData = JSON.stringify(data);
-                    let response = await fetch('http://127.0.0.1:8888/api/create/',{
+                let response = await fetch('http://127.0.0.1:8888',{
                     method:'POST',
                     headers: {'Content-Type' : 'application/json'},
                     body:jsonData
                 })
                 let result = await response.json();
-
+                
                 document.getElementById('no').style.display='block'
                 document.getElementById('last_Buttons').style.display='block'
-                const numb = document.getElementById('num')
-                numb.innerText = result.code;
-                quizCode = result.code
-                document.getElementById('no_code').style.display = 'block'
+
             })
             Container.appendChild(submitButton);
-
             const refreshButton = document.getElementById('refresh-button');
-            const code = document.getElementById('num').innerText;
-            console.log("Refresh : ", quizCode);
-            refreshButton.addEventListener('click',async function() {
-                let number = await fetch(`http://127.0.0.1:8888/api/refresh?code=${quizCode}`,{
-                    method:'GET'
+            refreshButton.addEventListener('click',async function(){
+                let number = await fetch('http://localhost:8888/api/refresh/',{
+                    method: 'GET'
                 });
                 let data = await number.json();
                 document.getElementById('peopleCount').innerText = data.people;
             });
             const allowButton = document.getElementById('start-button');
-            allowButton.addEventListener('click', async function(){
-                let start = await fetch('http://127.0.0.1:8888/api/start-quiz/',{
-                    method:'POST',
-                    headers: {'Content-Type' : 'application/json'},
-                    body: {"condition" : true}
-                })
-            })
+            allowButton.addEventListener('click', async function() {
+                let number = await fetch('http://localhost:8888/allow', {});
+                let data = await number.json();
+                document.getElementById('peopleCount').innerText = data.people;
+            });
         })
+
     </script>
 </body>
-
 </html>

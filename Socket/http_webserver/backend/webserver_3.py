@@ -6,21 +6,44 @@ from http_protocol import HttpResponse
 import os
 import json
 import random
+import sqlite3
+
 
 host = '127.0.0.1'
 port = 8888
 server_sock = None  # Declare this globally so it can be accessed in the signal handler
 
-code_map = {"0110": ["Host",[]]}
+create_quest_lock = threading.Lock()
+condition = threading.Condition()
+
+shared_data = {
+            "questions": [
+            {
+            "id": 1,
+            "question": "What is the capital of France?",
+            "options": ["Paris", "London", "Berlin", "Rome"],
+            "answer": "Paris"
+            },
+            {
+              "id": 2,
+              "question": "Who wrote 'Hamlet'?",
+              "options": ["William Shakespeare", "Charles Dickens", "J.K. Rowling", "Leo Tolstoy"],
+              "answer": "William Shakespeare"
+            }
+            ]
+        }
+code_map = {1234 : ["Host", []]}
 code_question = {}
+code_map_count = {}
 
 resources = {
              '/' : r'E:\Quizzard\Quizzard\Socket\http_webserver\frontend\main.html',
              '/join.html' : r'E:\Quizzard\Quizzard\Socket\http_webserver\frontend\join.html',
-             '/leader.html': r'E:\Quizzard\Quizzard\Socket\http_webserver\frontend\leader.html',
+             '/leader.html' : r'E:\Quizzard\Quizzard\Socket\http_webserver\frontend\leader.html',
              '/style.css' : r'E:\Quizzard\Quizzard\Socket\http_webserver\frontend\style.css',
              '/create.html' : r'E:\Quizzard\Quizzard\Socket\http_webserver\frontend\create.html',
              '/lobby.html' : r'E:\Quizzard\Quizzard\Socket\http_webserver\lobby.html',
+             '/index.html' : r'E:\Quizzard\Quizzard\Socket\http_webserver\frontend\index.html',
             }
 
 resources_type = {
@@ -29,6 +52,7 @@ resources_type = {
     'image' : 'image/',
 }
 
+# Synchronize this function to avoid assigning the same code for two hosting clients
 def join_code(client):
     code = random.randrange(100000, 999999)
     while code in code_map:
@@ -43,24 +67,33 @@ def join_code(client):
     return code
 
 # To get questions from the host and preprocess it.
+
 def create_quest(client, *args, **kwargs):
-    body = json.loads(args[0])
-    code = join_code()
-    code_question[code] = body
-    response_object = HttpResponse(201, "Created")
-    response_packet, _ = response_object.build_packet()
+    with create_quest_lock:
+        body = json.loads(args[0])
+        code = join_code(client)
+        code_question[code] = body
+        global shared_data
+        shared_data = body
+        print("Shared Data : ",shared_data)
+    response_object = HttpResponse(302, "Found")
+    response_object.add_header('Content-Type', 'application/json')
+    jsonCode = json.dumps({'code' : code}).encode('utf')
+    response_object.set_body({'code' : code})
+    response_object.add_header('Content-Length', len(jsonCode))
+    response_packet, body = response_object.build_packet()
     client.send(response_packet)
+    client.sendall(jsonCode)
 
 def join_quiz(client, *args, **kwargs):
     body = json.loads(args[0])
-    code = body['code']
-    print("Code : ",code)
+    code = body['client_code']
     if code in code_map:
         code_map[code][1].append(client)
+        print("Code Map : ",code_question[code])
         response_object = HttpResponse(302, "Found")
-        response_object.add_header('Content-Type', 'text/html')
+        response_object.add_header('Content-Type', 'application/json')
         response_object.add_header('Content-Length', 0)
-        response_object.add_header('Location', f'http://{host}:{port}/lobby.html')
         response_packet, _ = response_object.build_packet()
         client.send(response_packet)
     else:
@@ -68,8 +101,40 @@ def join_quiz(client, *args, **kwargs):
         response_packet, body = response_object.build_packet()
         client.send(response_packet)
 
+'''
+
 def start_quiz(client, *args, **kwargs):
-    pass
+    
+    Once the count of the responses equals
+    the total number of clients, the user will 
+    be redirected to the leaderboard page along
+    with the score and name information.
+
+    Before the quiz starts the code will be
+    deleted from the map so the user cannot join
+'''
+
+def start_quiz(client, *args, **kwargs):
+    global shared_resource
+    body = json.loads(args[0])
+
+
+def get_quiz_data(client, *args, **kwargs):
+    global shared_data
+    if shared_data:
+        response_object = HttpResponse(200, 'OK')
+        response_object.add_header('Content-Type','application/json')
+        dataObject = {"data" : shared_data}
+        jsonData = json.dumps(dataObject).encode('utf-8')
+        response_object.add_header('Content-Length', len(jsonData))
+        response_object.set_body(dataObject)
+        response_packet, body = response_object.build_packet()
+        client.send(response_packet)
+        client.sendall(jsonData)
+    else:
+        response_object = HttpResponse(404, "Not Found")
+        response_packet, body = response_object.build_packet()
+        client.send(response_packet)
 
 class HandleError(Exception):
     status_map = {
@@ -137,6 +202,28 @@ def fetch_file(url_path):
     except Exception as e:
         raise HandleError("Internal Server Error", 500)
 
+def refresh(client, *args, **kwargs):
+    refresh_code = kwargs['params']
+    if refresh_code:
+        if code_map[refresh_code['code']]:
+            response_object = HttpResponse(200, 'OK')
+            response_object.add_header('Content-Type','application/json')
+            count = len(code_map[refresh_code['code']][1])
+            jsonCount = json.dumps({"people" : count}).encode('utf')
+            response_object.add_header('Content-Length', len(jsonCount))
+            response_object.set_body({"people" : count})
+            response_packet, body = response_object.build_packet()
+            print("Inside Refresh : ",count)
+            client.send(response_packet)
+            client.sendall(jsonCount)
+        else:
+            response_object = HttpResponse(404, 'Not Found')
+            response_packet, _ = response_object.build_packet()
+            client.send(response_packet)
+            print("Code Not Found")
+    else:
+        print("No Parameters passed")
+
 def handle_get(client, req_path):
     if '?' in req_path:
         path, params = req_path.split('?')
@@ -150,6 +237,9 @@ def handle_get(client, req_path):
 def handle_post(client, req_path, body):
     handle = url_patterns.get(req_path)
     handle(client, body)
+
+def redirect_teach(client, *args, **kwargs):
+    print(kwargs['params'])
 
 def handle_client(client, addr):
     try:
@@ -225,6 +315,10 @@ url_patterns = {}
 url_patterns['/api/join-code/'] = join_code
 url_patterns['/api/create/'] = create_quest
 url_patterns['/api/join-quiz/'] = join_quiz
+url_patterns['/api/data/'] = get_quiz_data
+url_patterns['/teach_wait.html'] = redirect_teach
+url_patterns['/api/start-quiz/'] = start_quiz
+url_patterns['/api/refresh/'] = refresh
 
 try:
     server_sock.listen(10)

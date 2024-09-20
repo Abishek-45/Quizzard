@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Handjet:wght@100..900&display=swap" rel="stylesheet">
+</head>
+<body>
+    <style>
+        /* Basic styling for the body */
+        body {
+            font-family: 'Handjet', sans-serif;
+            background-color: rgb(124, 163, 184);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            flex-direction: column;
+        }
+
+        /* Styling for the quiz container */
+        #quiz {
+            font-size: 80px;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            width: 400px;
+            margin-bottom: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Heading styling */
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        /* Styling for question text */
+        #quiz p {
+            
+            font-size: 30px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .option-button {
+        background-color: rgb(184, 181, 181);
+        font-size: 20px;
+        margin: 5px 0;
+        padding: 20px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        width: 100%;
+        text-align: center;
+        font-family: 'Handjet', sans-serif;
+        }
+
+        .option-button:hover {
+        background-color: #ccc;
+        }
+
+        /* Styling for the Start Quiz button */
+        #start-button {
+
+            font-family: 'Handjet', sans-serif;
+
+            background-color: #000000;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 50px;
+        }
+
+        /* Hover effect for the Start Quiz button */
+        #start-button:hover {
+            background-color: white;
+            color: #000000;
+        }
+
+        /* Styling for the timer */
+        #timer {
+            font-size: 25px;
+            color: brown; /* Tomato red */
+            margin-bottom: 10px;
+        }
+
+        /* Styling for the end quiz score */
+        h2 {
+            font-size: 24px;
+            color: #000000;
+            text-align: center;
+        }
+
+        .title {
+            font-size: 100px;
+            color: azure;
+            margin-top: -200px;
+        }
+        input{
+            border: none;
+            height: 50px;
+            width: 250px;
+            text-align: center;
+            border-radius: 10px;
+            font-family: 'Handjet';
+            font-size: 30px;
+        }
+    </style>
+
+    <p class="title">Quizzard</p>
+    <p id="timer" style="display: none;">Time left: 10</p>
+    <div id="quiz" style="display: none;"></div>
+    <!-- <div id="input" method="POST"><input type="text" name="" id="join-code" placeholder="Enter Code"></div> -->
+    <br>
+    <button id="start-button">Start Quiz</button>
+    
+    <script>
+    let data;
+    
+    // Function to load quiz data from the server
+    async function loadquiz() {
+        try {
+            // Simulate a fetch request (replace with actual API call)
+            let response = await fetch('http://127.0.0.1:8888/api/data/', {
+                method: 'GET',
+                headers: {'Content-type': 'application/json'}
+            });
+            
+            if (!response.ok) {
+                throw new Error("Failed to fetch quiz data");
+            }
+
+            // Parse the JSON data received from the server
+            data = await response.json();
+
+            // After loading quiz data, enable the start button and show the quiz
+            console.log("Quiz data loaded:", data);
+            document.getElementById('start-button').disabled = false;
+        } catch (error) {
+            console.error('Error loading quiz data:', error);
+        }
+    }
+
+    let mark = 0;
+    let currentq = 0;
+    let timeinterval;
+    let timeleft = 10;
+
+    const timerelement = document.getElementById('timer');
+    const quiz = document.getElementById('quiz');
+    const startButton = document.getElementById('start-button');
+
+    // Initially disable the start button until the quiz data is loaded
+    // startButton.disabled = true;
+
+    
+    
+
+    // Add event listener for the start button
+    startButton.addEventListener('click', async ()=>{
+        await loadquiz()
+        if (data.data && data.data.questions) {
+        startquiz();
+        } else {
+        console.error('Quiz data is not available.');
+        }
+    });
+
+    // Function to start the quiz
+    function startquiz() {
+        showQuestion(currentq);
+        starttimer();
+        timerelement.style.display = 'block';
+        quiz.style.display = 'block';
+        startButton.style.display = 'none';
+    }
+
+    // Function to display a question
+    function showQuestion(index) {
+        quiz.innerHTML = '';
+        index = parseInt(index, 10);
+        console.log("Index : ", index);
+        const q = data.data.questions[index];
+
+        const questiondiv = document.createElement('div');
+
+        const questionText = document.createElement('p');
+        questionText.textContent = q.question;
+        questiondiv.appendChild(questionText);
+
+        q.options.forEach(option => {
+            const optionButton = document.createElement('button');
+            optionButton.textContent = option;
+            optionButton.classList.add('option-button');
+
+            optionButton.addEventListener('click', () => {
+                checkAnswer(q.id, option, q.answer, optionButton);
+            });
+
+            questiondiv.appendChild(optionButton);
+        });
+        quiz.appendChild(questiondiv);
+    }
+
+    // Function to check the selected answer
+    function checkAnswer(id, option, answer, button) {
+        const questiondiv = document.querySelectorAll("button");
+
+        questiondiv.forEach(btn => {
+            btn.disabled = true;
+            btn.style.color = 'black';
+            if (btn.textContent == answer) {
+                btn.style.backgroundColor = 'lightgreen';
+            }
+        });
+
+        if (option == answer) {
+            button.style.backgroundColor = 'lightgreen';
+            mark += 1;
+        } else {
+            button.style.backgroundColor = 'lightcoral';
+        }
+    }
+
+    // Function to start the timer
+    function starttimer() {
+        timeleft = 10;
+        timerelement.textContent = `Time left: ${timeleft}`;
+        timeinterval = setInterval(() => {
+            timeleft--;
+            timerelement.textContent = `Time left: ${timeleft}`;
+
+            if (timeleft <= 0) {
+                clearInterval(timeinterval);
+                movetonextquestion();
+            }
+        }, 1000);
+    }
+
+    // Function to move to the next question
+    function movetonextquestion() {
+        currentq++;
+        if (currentq < data.data.questions.length) {
+            showQuestion(currentq);
+            starttimer();
+        } else {
+            endquiz();
+        }
+    }
+    // Function to end the quiz and show the score
+    function endquiz() {
+        quiz.innerHTML = `<h2>Score: ${mark}/${data.data.questions.length}</h2>`;
+        timerelement.style.display = 'none';
+    }
+</script>
+</body>
+</html>

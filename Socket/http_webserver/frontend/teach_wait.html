@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Handjet:wght@100..900&display=swap" rel="stylesheet">
+</head>
+<body>
+    <style>
+        body {
+            background-color: rgb(124, 163, 184);
+        }
+        p{
+            font-family: 'Handjet' , sans-serif;
+        }
+        button {
+            font-family: 'Handjet', sans-serif;
+            background-color: #000000;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 50px;
+            width: 200px;
+            align-items: center;
+            justify-content: center;
+        }
+        #no{
+            font-size: 50px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            text-align: center;
+            color: rgb(255, 255, 255);
+        }
+        button:hover {
+            background-color: white;
+            color: #000000;
+        }
+        #container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+    
+        }
+
+    </style>
+
+        <div id="no">
+            <p>Room-Code: <span id="code"></span></p>
+            <p>No. of People joined: <span id="peopleCount"></span></p>
+        </div>
+
+        <div id="container">
+            <button id="refresh-button">Refresh</button>
+            <br><br>
+            <button id="start-button">Start</button>
+        </div>
+
+    <script>
+        const data = {
+            number: 0
+        };
+        function getQueryParam(param) {
+            let urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get(param);
+        }
+        // Get the 'code' parameter from the URL and display it
+        let code = getQueryParam('code');
+        document.getElementById('code').textContent = code;
+
+        document.getElementById('peopleCount').textContent = data.number;
+        const startButton = document.getElementById('start-button');
+        const refreshButton = document.getElementById('refresh-button');
+        refreshButton.addEventListener('click', async () => {
+            const response = await fetch('http://127.0.0.1:8888/api/count/',{
+                method:'GET'
+            });
+            const data = await response.json();
+            document.getElementById("peopleCount").textContent = data.number;
+        });
+        startButton.addEventListener('click', () => {
+            document.getElementById('container').innerHTML = "";
+        });
+    </script>
+</body>
+</html>
