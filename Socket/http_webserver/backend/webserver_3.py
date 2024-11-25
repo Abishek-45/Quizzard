@@ -6,12 +6,11 @@ from http_protocol import HttpResponse
 import os
 import json
 import random
-import sqlite3
 
 
 host = '127.0.0.1'
 port = 8888
-server_sock = None  # Declare this globally so it can be accessed in the signal handler
+server_sock = None
 
 create_quest_lock = threading.Lock()
 condition = threading.Condition()
@@ -58,12 +57,6 @@ def join_code(client):
     while code in code_map:
         code = random.randrange(100000, 999999)
     code_map[code] = [[client], []]         #[[Host], [Client1, Client2, Client3]]
-    # response_object = HttpResponse(200, 'OK')
-    # response_object.add_header('Content-Type', 'application/json')
-    # json_body = json.dumps({"data": code})
-    # response_object.set_body(json_body)
-    # response_object.add_header('Content-Length', len(json_body))
-    # response_packet, body = response_object.build_packet()
     return code
 
 # To get questions from the host and preprocess it.
@@ -117,7 +110,6 @@ def start_quiz(client, *args, **kwargs):
 def start_quiz(client, *args, **kwargs):
     global shared_resource
     body = json.loads(args[0])
-
 
 def get_quiz_data(client, *args, **kwargs):
     global shared_data
@@ -275,13 +267,6 @@ def handle_client(client, addr):
                         client.sendall(body.encode('utf-8'))
                 elif parse[0] == 'POST':
                     handle_post(client, parse[1], headers['body'])
-                    # response_object = HttpResponse(200, 'OK')
-                    # response_object.add_header('Content-type', 'application/json')
-                    # response_object.set_body({"answer" : 2})
-                    # response_packet, body = response_object.build_packet()
-                    # client.send(response_packet)
-                    # if body:
-                    #     client.send(json.dumps(body).encode('utf-8'))
                 else:
                     raise HandleError('Bad Request', 400)
             except HandleError as e:
@@ -293,17 +278,15 @@ def handle_client(client, addr):
                 print("Server Error : ", e)
     finally:
         print("Closing client...",addr)
-        client.close() # Close connection after handling the request
+        client.close()
         return
 
-# Signal handler for Ctrl + C (SIGINT)
 def signal_handler(sig, frame):
     print("Ctrl + C detected, shutting down the server...")
     if server_sock:
-        server_sock.close()  # Close the server socket
-    sys.exit(0)  # Exit the program
+        server_sock.close()
+    sys.exit(0) 
 
-# Register the signal handler
 signal.signal(signal.SIGINT, signal_handler)
 
 # Server code
