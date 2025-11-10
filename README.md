@@ -20,5 +20,3 @@ Quizzard allows multiple users to join a quiz session simultaneously, exchange q
 - **Tools:** Git, VS Code, Command-Line Interface  
 
 ---
-
-## 📂 Project Structure
